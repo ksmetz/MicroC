@@ -1,10 +1,10 @@
 #! /bin/bash -login
 #SBATCH -J MicroC_Pipeline
-#SBATCH -t 10-00:00:00
+#SBATCH -t 2-00:00:00
 #SBATCH -N 1
 #SBATCH -n 1
 #SBATCH -c 1  
-#SBATCH -p general
+#SBATCH -p norm
 #SBATCH --mem=2gb
 #SBATCH -o "%x-%j.out"
 
@@ -12,7 +12,7 @@
 set -e
 
 ## Load required modules
-module load python/3.6.6
+module load python/3.7
 
 ## Create and activate virtual environment with requirements
 python3 -m venv env && source env/bin/activate && pip3 install -r config/requirements.txt
