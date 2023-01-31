@@ -42,7 +42,7 @@ rule align:
         R2 = lambda wildcards: read2.get(wildcards.group)
     output:
         stats = "output/{group}/{group}_dedup_stats.txt",
-        dedup_pairsam = "output/{group}/{group}_dedup.pairsam" #temp
+        dedup_pairsam = temp("output/{group}/{group}_dedup.pairsam")
     log:
         err = "output/{group}/logs/{group}_align.err"
     threads: 16
@@ -56,7 +56,7 @@ rule align:
         module load bwa
         module load pairtools
         tmpdir=$(mktemp -d -p $PWD/output/{wildcards.group})
-        bwa mem -5SP -T0 -t {threads} {params.fasta} {input.R1} {input.R1} | \
+        bwa mem -5SP -T0 -t {threads} {params.fasta} {input.R1} {input.R2} | \
         pairtools parse --min-mapq 40 --walks-policy 5unique --max-inter-align-gap 30 \
         --nproc-in {threads} --nproc-out {threads} --chroms-path {params.chromSizes} | \
         pairtools sort --tmpdir=$tmpdir --nproc {threads} | \
@@ -65,89 +65,13 @@ rule align:
         rm -rf $tmpdir
         """
 
-# ## Alignment
-# rule align:
-#     input:
-#         R1 = lambda wildcards: read1.get(wildcards.group),
-#         R2 = lambda wildcards: read2.get(wildcards.group)
-#     output:
-#         sam = "output/{group}/{group}_aligned.sam" #temp
-#     log:
-#         err = "output/{group}/logs/{group}_align.err"
-#     threads: 16
-#     params:
-#         fasta = config['fasta']
-#     benchmark: 
-#         "output/{group}/benchmarks/{group}_align.tsv"
-#     shell:
-#         "module load bwa; "
-#         "bwa mem -5SP -T0 -t {threads} {params.fasta} {input.R1} {input.R2} > {output.sam} 2> {log.err}"
-
-# ## Recording valid ligation events
-# rule parse:
-#     input:
-#         sam = rules.align.output.sam
-#     output:
-#         pairsam = "output/{group}/{group}_parsed.pairsam" #temp
-#     log:
-#         err = "output/{group}/logs/{group}_parse.err"
-#     threads: 16
-#     params:
-#         chromSizes = config['chromSizes']
-#     benchmark: 
-#         "output/{group}/benchmarks/{group}_parse.tsv"
-#     shell:
-#         """
-#         module load pairtools
-#         pairtools parse --min-mapq 40 --walks-policy 5unique --max-inter-align-gap 30 --nproc-in {threads} \
-#         --nproc-out {threads} --chroms-path {params.chromSizes} {input.sam} > {output.pairsam}
-#         """
-
-# ## Sorting the pairsam files
-# rule sort_pairsam:
-#     input:
-#         pairsam = rules.parse.output.pairsam
-#     output:
-#         sorted_pairsam = "output/{group}/{group}_sorted.pairsam" #temp
-#     log:
-#         err = "output/{group}/logs/{group}_sort_pairsam.err"
-#     threads: 16
-#     benchmark: 
-#         "output/{group}/benchmarks/{group}_sort_pairsam.tsv"
-#     shell:
-#         """
-#         tmpdir=$(mktemp -d -p $PWD/output/{wildcards.group})
-#         module load pairtools
-#         pairtools sort --nproc {threads} --tmpdir=$tmpdir {input.pairsam} > {output.sorted_pairsam}
-#         rm -rf $tmpdir
-#         """
-
-# ## Removing PCR duplicates
-# rule dedup:
-#     input:
-#         sorted_pairsam = rules.sort_pairsam.output.sorted_pairsam
-#     output:
-#         stats = "output/{group}/{group}_dedup_stats.txt", 
-#         dedup_pairsam = "output/{group}/{group}_dedup.pairsam" #temp
-#     log:
-#         err = "output/{group}/logs/{group}_dedup.err"
-#     threads: 16
-#     benchmark: 
-#         "output/{group}/benchmarks/{group}_dedup.tsv"
-#     shell:
-#         """
-#         module load pairtools
-#         pairtools dedup --nproc-in {threads} --nproc-out {threads} --mark-dups --output-stats {output.stats} \
-#         --output {output.dedup_pairsam} {input.sorted_pairsam}
-#         """
-
 ## Generate .pairs and .bam files
 rule pairs:
     input:
         dedup_pairsam = rules.align.output.dedup_pairsam
     output:
-        mapped_pairs = "output/{group}/{group}_mapped.pairs", #temp
-        unsorted_bam = "output/{group}/{group}_unsorted.bam" #temp
+        mapped_pairs = "output/{group}/{group}_mapped.pairs", 
+        unsorted_bam = temp("output/{group}/{group}_unsorted.bam") 
     log:
         err = "output/{group}/logs/{group}_pairs.err"
     threads: 16
