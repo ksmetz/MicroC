@@ -56,7 +56,7 @@ rule align:
         module load bwa
         module load pairtools
         tmpdir=$(mktemp -d -p $PWD/output/{wildcards.group})
-        bwa mem -5SP -T0 -t {threads} {params.fasta} {input.R1} {input.R2} | \
+        bwa mem -5SP -T0 -t {threads} {params.fasta} <(cat {input.R1}) <(cat {input.R2}) | \
         pairtools parse --min-mapq 40 --walks-policy 5unique --max-inter-align-gap 30 \
         --nproc-in {threads} --nproc-out {threads} --chroms-path {params.chromSizes} | \
         pairtools sort --tmpdir=$tmpdir --nproc {threads} | \
