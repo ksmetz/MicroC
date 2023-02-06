@@ -32,7 +32,7 @@ for key in groups:
 ##### Define rules #####
 rule all:
     input:
-        expand('output/{group}/{group}_merged{ext}', group=groups, ext=['.pairs', '_map.hic'])
+        expand('output/{group}/{group}_merged{ext}', group=groups, ext=['.pairs']) #, '_map.hic'
 
 ## Merge all mapped.pairs files found in mergeList
 rule merge:
@@ -48,25 +48,27 @@ rule merge:
     shell:
         """
         module load pairtools
-        pairtools merge {input} 2> {log} 1> {output.merged_pairs}
+        tmpdir=$(mktemp -d -p $PWD/output/{wildcards.group})
+        pairtools merge --tmpdir=$tmpdir -o {output.merged_pairs} {input} 2> {log} 
+        rm -rf $tmpdir
         """ 
 
-## Generate hic file (one-step)
-rule hic:
-    input:
-        merged_pairs = rules.merge.output.merged_pairs
-    output:
-        hic = "output/{group}/{group}_merged_map.hic"
-    log:
-        err = "output/{group}/logs/{group}_mergedHic.err"
-    threads: 16
-    params:
-        chromSizes = config['chromSizes']
-    benchmark: 
-        "output/{group}/benchmarks/{group}_mergedHic.tsv"
-    shell:
-        """
-        module load juicer
-        juicer_tools pre \
-        --threads {threads} {input.merged_pairs} {output.hic} {params.chromSizes}
-        """
+# ## Generate hic file (one-step)
+# rule hic:
+#     input:
+#         merged_pairs = rules.merge.output.merged_pairs
+#     output:
+#         hic = "output/{group}/{group}_merged_map.hic"
+#     log:
+#         err = "output/{group}/logs/{group}_mergedHic.err"
+#     threads: 16
+#     params:
+#         chromSizes = config['chromSizes']
+#     benchmark: 
+#         "output/{group}/benchmarks/{group}_mergedHic.tsv"
+#     shell:
+#         """
+#         module load juicer
+#         juicer_tools pre \
+#         --threads {threads} {input.merged_pairs} {output.hic} {params.chromSizes}
+#         """
