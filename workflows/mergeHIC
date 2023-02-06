@@ -1,0 +1,72 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import pandas as pd
+import glob
+
+##### Load config and sample sheets #####
+onsuccess:
+	print("mergeHIC completed successfully!")
+
+configfile: "config/config.yaml"
+
+## Read in samplesheet
+samples = pd.read_table(config["samplesheet"])
+
+## Convert all columns to strings
+samples = samples.astype(str)
+
+## Concatenate columns to identify which groups to run (i.e. Seq_Rep will be run together)
+samples['id'] = samples[config['mergeBy']].agg('_'.join, axis=1)
+
+## Use ID's as groups
+groups = list(set(samples['id']))
+
+## Group by id and extract pairs files
+pairs = samples.groupby('id')['pairs'].apply(list).to_dict()
+
+## Get unique files for each grouping
+for key in groups:
+    pairs[key] = list(set(pairs[key]))
+
+##### Define rules #####
+rule all:
+    input:
+        expand('output/{group}/{group}_merged{ext}', group=groups, ext=['.pairs', '_map.hic'])
+
+## Merge all mapped.pairs files found in mergeList
+rule merge:
+    input:
+        lambda wildcards: pairs[wildcards.group]
+    output:
+        merged_pairs = 'output/{group}/{group}_merged.pairs'
+    log:
+        'output/{group}/logs/{group}_mergedPairs.err'
+    benchmark:
+        'output/{group}/benchmarks/{group}_mergedPairs.tsv'
+    threads: 8
+    shell:
+        """
+        module load pairtools
+        pairtools merge {input} 2> {log} 1> {output.merged_pairs}
+        """ 
+
+## Generate hic file (one-step)
+rule hic:
+    input:
+        merged_pairs = rules.merge.output.merged_pairs
+    output:
+        hic = "output/{group}/{group}_merged_map.hic"
+    log:
+        err = "output/{group}/logs/{group}_mergedHic.err"
+    threads: 16
+    params:
+        chromSizes = config['chromSizes']
+    benchmark: 
+        "output/{group}/benchmarks/{group}_mergedHic.tsv"
+    shell:
+        """
+        module load juicer
+        juicer_tools pre \
+        --threads {threads} {input.merged_pairs} {output.hic} {params.chromSizes}
+        """
