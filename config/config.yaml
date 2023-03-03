@@ -5,5 +5,5 @@ samplesheet: 'samplesheet.txt'
 mergeBy: ['Project', 'Cell_Type', 'Bio_Rep', 'Tech_Rep']
 
 ## Genome-specific reference parameters
-fasta: '/fdb/bwa/indexes/hg38.fa' 
+fasta: '/fdb/igenomes/Homo_sapiens/NCBI/GRCh38/Sequence/BWAIndex/genome.fa' 
 chromSizes: '/data/genome/fasta/hg38.chrom.sizes'
