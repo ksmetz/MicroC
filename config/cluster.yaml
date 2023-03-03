@@ -11,3 +11,4 @@ __default__:
 ## Multi-threaded / High-memory Rules
 hic:
   memPerCpu: 16G
+  partition: largemem

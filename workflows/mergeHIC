@@ -68,7 +68,6 @@ rule hic:
         "output/{group}/benchmarks/{group}_mergedHic.tsv"
     shell:
         """
-        module load juicer
-        juicer_tools pre \
+        java -Xmx16384m -Xms16384m -Djava.awt.headless=true -jar /data/reedks/tools/juicer_tools_1.22.01.jar pre \
         --threads {threads} {input.merged_pairs} {output.hic} {params.chromSizes}
         """
